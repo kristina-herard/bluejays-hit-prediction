@@ -67,7 +67,7 @@ The model identifies a majority of true hits but produces false positives — co
 
 ## Full Report
 
-[View Full Technical Report (PDF)](individual-project.pdf)
+[View Full Technical Report (PDF)](markdown.pdf)
 
 ---
 
