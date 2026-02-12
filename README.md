@@ -1,9 +1,9 @@
 # bluejays-hit-prediction
 Predicting Toronto Blue Jays base hits using launch speed, launch angle, release speed, and pitch type with logistic regression.
 
-# ⚾ MLB Base Hit Prediction Using Pitch & Contact Data
+# MLB Base Hit Prediction Using Pitch & Contact Data
 
-## 📊 Project Overview
+## Project Overview
 
 This project analyzes MLB pitch-level and batted-ball data to predict whether a plate appearance results in a **base hit**. Using statistical modeling techniques, the goal was to determine which variables most strongly influence hit probability.
 
@@ -17,7 +17,7 @@ The analysis applies logistic regression, model selection techniques, and nonlin
 
 ---
 
-## 🎯 Objectives
+## Objectives
 
 - Explore relationships between pitch characteristics and hit outcomes  
 - Identify statistically significant predictors of base hits  
@@ -27,7 +27,7 @@ The analysis applies logistic regression, model selection techniques, and nonlin
 
 ---
 
-## 🧮 Methods
+## Methods
 
 - Exploratory Data Analysis (EDA)
 - Logistic Regression (GLM with binomial family)
@@ -42,7 +42,7 @@ All analysis was conducted in **R**.
 
 ---
 
-## 📈 Key Findings
+## Key Findings
 
 - **Launch speed** and **launch angle** were the strongest predictors of base hits.
 - Pitch type and pitch release speed were not statistically significant after accounting for contact quality.
@@ -54,7 +54,7 @@ These findings align with baseball intuition: harder contact at optimal launch a
 
 ---
 
-## 📊 Model Performance
+## Model Performance
 
 - Accuracy: 73%
 - Sensitivity (Recall): 66%
@@ -65,13 +65,13 @@ The model identifies a majority of true hits but produces false positives — co
 
 ---
 
-## 📄 Full Report
+## Full Report
 
-👉 [View Full Technical Report (PDF)](individual-project.pdf)
+[View Full Technical Report (PDF)](individual-project.pdf)
 
 ---
 
-## 🚀 How to Run
+## How to Run
 
 1. Clone this repository
 2. Open the project in RStudio
@@ -80,7 +80,7 @@ The model identifies a majority of true hits but produces false positives — co
 
 ---
 
-## 👩‍💻 Author
+## Author
 
 Kristina Herard  
 Statistics & Sports Analytics  
