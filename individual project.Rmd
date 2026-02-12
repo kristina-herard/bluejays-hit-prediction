@@ -1,0 +1,304 @@
+---
+title: "S429 Individual Project"
+author: "Kristina Herard"
+date: "2025-11-04"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo = FALSE}
+library(car)
+library(ggplot2)
+library(lattice)
+library(caret)
+library(xfun)
+library(tidyr)
+
+```
+
+
+```{r}
+library(readr)
+bluejays <- read_csv("C:/Users/krist/Downloads/bluejays.csv")
+attach(bluejays)
+bluejays[1:5,]
+```
+
+```{r}
+names(bluejays)
+```
+
+```{r}
+sum(is.na(bluejays))
+
+bluejays$hit <- ifelse(bluejays$events %in% c("single","double","triple","home_run"), 1, 0)
+
+length(unique(bluejays$pitch_type))
+```
+
+
+Boxplots including pitch type, exit velocity, launch angle, release speed and whether they will result in a base hit or not. 
+
+
+```{r pressure, echo=FALSE}
+bluejays$pitch_type <- factor(bluejays$pitch_type,
+                              levels = c("CH","CU","EP","FA","FC","FF","FS","KC","SI","SL","ST","SV"))
+
+pitch_types <- levels(bluejays$pitch_type)
+
+par(mfrow = c(3,5), mar = c(4,4,2,1))  
+
+for (p in pitch_types) {
+  subset_data <- subset(bluejays, pitch_type == p)
+  if (nrow(subset_data) == 0) {
+    plot(1, type = "n",
+         xlim = c(0,1), ylim = c(0.5,1.5),
+         xlab = "Base Hit (0=No, 1=Yes)",
+         ylab = "",
+         axes = FALSE,
+         main = p)
+    box()
+    axis(1, at = c(0,1), labels = c(0,1))
+    axis(2, at = 1, labels = p)
+  } else {
+    boxplot(subset_data$hit,
+            horizontal = TRUE,
+            xlab = "Base Hit (0=No, 1=Yes)",
+            ylab = "",
+            col = "lightblue",
+            xaxt = "n",
+            yaxt = "n",
+            xlim = c(0,1.5),
+            ylim = c(-0.2, 1.5))
+    axis(1, at = c(0,1), labels = c(0,1))
+    axis(2, at = 1, labels = p)
+  }
+}  
+boxplot(launch_speed ~ bluejays$hit, ylab = "Exit Velocity", col = "lightblue", xlab = "Base Hit? (0=No, 1=Yes)", lwd = 0.35)
+boxplot(launch_angle ~ bluejays$hit, ylab = "Launch Angle", col = "lightblue", xlab = "Base Hit? (0=No, 1=Yes)", lwd = 0.35)
+boxplot(release_speed ~ bluejays$hit, ylab = "Release Speed", col = "lightblue", xlab = "Base Hit? (0=No, 1=Yes)", lwd = 0.35)
+```
+
+Interpretation: 
+
+From the box plots of pitch types, we can see that the pitches of changeup, curveball, fastball, cut fastball, four-seam fastball, split-finger fastball, knuckle curve, sinker, slider, and sweeper all have one box for "Base Hit = 0", with low variability. This means that these pitches rarely resulted in base hits in this dataset, and the pitch type performs consistently while used (as shown from limited spread of the box).
+
+The eephus pitch boxplot shows an even smaller box, with a longer upper tail. This means thatmost of the data is very close together, meaning low variability just as the other pitches do. However, the long upper tail suggests that there are a few data points that are much higher than the main cluster. This data is right skewed, and could indicate rare pitches with unusually high speed, or extreme launch angles. This could also indicate the few times that this pitch was hit with an unusually high exit velocity. 
+
+Finally, the slurve pitch also has low variability, however, the median line is closer to "Base Hit = 1", meaning while performance is similarily consistent across outcomes, the slurve pitch is slightly more likely to result in hits at more favorable values. 
+
+The median exit velocity for hits is clearly higher than for non-hits. The entire box for hits is shifted upward, meaning most batted balls that become hits leave the bat faster. oOutliers on the low end for both groups show a few slow exit velocities, but hits are generally clustered higher. In conclusion, higher exit velocity increses liklihood of a base hit, harder hit balls are more likely to get through the defense. 
+
+The median launch angle for hits is positive and around 10-20 degrees, while for non-hits, it is centered around 0 or slightly negative. The spread for hits is narrower, meaning successful hits tend to ocur within a more optimal range of angles. Non-hits have a wider range of launch angles, including many negative ones (grounders) or very high ones (pop-ups). In conclusion, balls hit at moderate upward angles are more likely to result in hits, while very low or very high angles usually lead to outs. 
+
+Like exit velocity, release speed is higher on average for hits. The median and upper quartile are both shifted upwards for base hits. The distributions are fairly tight, suggesting consistent release speeds among hit events. In conclusion, pitchers or batted balls with higher release speed correlate with hits, likely reflecting stronger contact or better swing mechanics. 
+
+
+Run the Logistic Regression: 
+
+```{r}
+m1 <- glm(bluejays$hit~launch_speed+launch_angle+release_speed+pitch_type, data = bluejays, family = binomial)
+summary(m1)
+```
+From the p-values in the regression, it can be seen that none of the pitch types and release speed are not actually significant in terms of hit probability, however, launch angle and launch speed have very small p-values, showing that those predictors are significant when determining the probability of getting a base hit. 
+
+**Plot the regression**
+
+```{r}
+par(mfrow = c(2,2), mar=c(4,4,2,1))
+plot(m1)
+```
+
+
+The residuals vs fitted plot shows that there is a clear curved pattern in the graph, and the residuals are not randomly scattered. This suggests non-linearity, meaning this model may not capture the relationship between the predictors and the log-odds of a base hit. 
+
+The Q-Q plot shows that the residuals deviate upwards ar both tails. this tells  us that the models residuals have heavier tails than expected, siggesting again that this model may have outliers or that it is not a good fit for the data. 
+
+The scale-location plot shows a distinct pattern, not a flat plot. This indicates the variance is not constant, implying predictions for extreme fitted probabilities may be less reliable. 
+
+The residuals vs, leverage plot shows that most points have low leverage and small residuals, which is good. While there are a few potentially influential points in the plot, none appear to exceed Cook's distance of 1, which tells us they are not extreme outliers. 
+marginal model plots
+
+```{r, echo=FALSE}
+library(car)
+```
+
+```{r}
+mmps(m1, terms = ~ launch_speed + launch_angle + release_speed)
+```
+In the first plot, We can see a steep increase in the curve at higher launch speeds. Because the blue and red lines are in no way similar, this relationship can be described at positively nonlinear, meaning higher launch speed substantially increases the probability of a hit, but the effect is not perfectly linear. 
+
+In the second plot, a clear bell shaped pattern exists, also suggesting a non-linear relationship between launch angle and a base hit. From the plot, it can be seen that a base hit is most likely to appear at a moderate launch angle, which matches real world intuition. 
+
+In the third plot, both blue and red lines are almost flat across the range of release speeds. This implies that there is no meaningful relationship between the pitchers release speed and whether the ball becomes a base hit. This conclusion is consistent with the insignificant p-value in the regression output. 
+
+This plot seems to fit the data the best out of all the plots. The blue curve shows the expected s-shaped logistic relationship between predicted log-odds, and hit probability. 
+
+
+```{r}
+library(effects)
+plot(effect("pitch_type", m1), main = "Marginal Effect of Pitch Type", ylab = "Predicted Probability of Hit")
+```
+This plot shows the predicted probabilities vary only modestly across pitch types. Most types yield probabilities between 0.3 and 0.4, suggesting pitch type has limited effect on hit likelihood after accounting for other factors such as launch speed and angle. This is consistent with the p-values we obtained in the regression earlier. FA (fastball) and SV (sweeper) show slightly higher average hit probabilities, but their error bars are large. EP (eephus) has an extremely wide confidence interval, likely because it occurs very rarely in this data.
+
+Because almost all error bars overlap, none of these differences are statistically significant at the 95% level. 
+
+
+```{r}
+bluejays2 <- data.frame(
+     hit = bluejays$hit,
+     launch_speed = bluejays$launch_speed,
+     launch_angle = bluejays$launch_angle,
+     pitch_type = bluejays$pitch_type,
+     release_speed = bluejays$release_speed
+)
+bluejays2 <- na.omit(bluejays2)
+
+m2<-glm(hit ~ launch_speed + I(launch_speed^2) + launch_angle + I(launch_angle^2) + release_speed + I(release_speed^2) + pitch_type, data = bluejays2, family = binomial)
+summary(m2)
+
+mmps(m2)
+```
+```{r}
+vif(m2)
+```
+
+
+
+```{r}
+backwardAIC <- step(m2, direction = "backward")
+```
+
+```{r}
+n <- length(bluejays$hit)
+backBIC <- step(m2, direction = "backward", k=log(n))
+```
+From the AIC selection process, the predictors included in the best model are only launch speed and launch angle. This makes sense from our regression output earlier, as these are the only 2 predictors with significant p-values. Based on this result, we should remove the predictors of pitch type and release speed. 
+
+
+
+data fits model better after transformation
+
+
+```{r}
+m3<-glm(hit ~ launch_speed + launch_angle, data = bluejays2, family = binomial)
+summary(m3)
+```
+
+
+```{r}
+par(mfrow = c(1, 2))
+boxplot(launch_speed ~ hit, ylab = "Exit Velocity", data = bluejays2, col = "lightblue", xlab = "Base Hit? (0=No, 1=Yes)", lwd = 0.35)
+boxplot(launch_angle ~ hit, ylab = "Launch Angle", col = "lightblue", data = bluejays2, xlab = "Base Hit? (0=No, 1=Yes)", lwd = 0.35)
+```
+exit velocity is left skewed, meaning the higher the exit velocity, the more likely a base hit will occur. 
+
+launch angle is very slightly left skewed, meaning when the launch angle is between 0 and 25, a base hit is more likely to occur. 
+
+```{r}
+vif(m3)
+```
+no collinearity between predictors which is good. 
+
+
+
+```{r}
+probabilities <- predict(m4, type = "response")
+predicted_hit <- ifelse(probabilities > 0.5, 1, 0)
+conf_matrix <- confusionMatrix(
+  factor(predicted_hit),
+  factor(bluejays2$hit),
+  positive = "1"
+)
+print(conf_matrix)
+
+```
+
+```{r}
+cm <- conf_matrix
+con_table <- cm$table
+conf_df <- as.data.frame(con_table)
+colnames(conf_df) <- c("Predicted Hit", "Actual Hit", "Count")
+library(grid)
+
+ggplot(conf_df, aes(x = `Actual Hit`, y = `Predicted Hit`, fill = Count)) +
+  geom_tile(col = "white") +
+  geom_text(aes(label = Count), col = "black", size = 6) +
+  scale_fill_gradient(low = "white", high = "violetred2") +
+  scale_x_discrete(labels= c("No Base Hit", "Base Hit")) +
+  scale_y_discrete(labels = c("No Base Hit", "Base Hit")) +
+  theme_minimal() +
+  labs(title = "Confusion Matrix", x= "Actual Hit", y = "Predicted Hit") +
+  theme(
+    text = element_text(size = 14), 
+    axis.ticks = element_blank(),
+    axis.ticks.length = unit(0, "cm"), 
+    panel.grid = element_blank(),
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 16), 
+    axis.text.y = element_text(angle = 90, hjust = 0.5) 
+  ) +
+  coord_fixed()
+
+```
+```{r}
+TP <- cm$table[2,2]
+FP <- cm$table[1,2]
+FN <- cm$table[2,1]
+
+precision <- TP / (TP + FP)
+
+recall <- TP / (TP + FN)
+
+F1 <- 2*(precision * recall) / (precision + recall)
+F1
+
+precision
+recall
+```
+when this model predicts a hit, it is only correct 41% of the time. This means the model is noy reliable in predicting actual hits. A "hit" in baseball is relatively rare (most plate appearances are outs).
+So predicting hits is difficult — and your model is producing too many false positive hit predictions.
+
+of the actual hits in this dataset, this model correctly predicted 62% of them. 
+A hit is rare and hard to predict.
+
+An F1 of ~0.51 means:
+
+The model finds many of the true hits (66% recall)
+
+But its hit predictions are often wrong (41% precision)
+
+Overall, the model is somewhat useful, but not highly reliable
+
+This is typical for logistic regression on baseball “hit/no hit”.
+
+
+anova between models 
+```{r}
+anova(m1, m3, test="Chisq")
+```
+From ANOVA, it can be seen that the p value of the analysis of deviance between models m1 and m2 is greater than 0.05, meaning that pitch type does not significantly improve the model, and these 2 models predict the same. 
+
+```{r}
+anova(m2, m3, test="Chisq")
+```
+Since the p-value of this test is also greater than 0.05, we can say that the release speed has no statistical significance in the model. 
+
+In conclusion, from the ANOVA tests, using a model with extra predictors such as release speed or pitch type will have no significance over using a model with only launch speed and launch angle. This means we should use model m3, as it holds only statistically significant precitors, and it has the least model complexity of the three. 
+```{r}
+coef(m3)
+```
+
+```{r}
+mean(launch_speed, na.rm = TRUE)
+mean(launch_angle, na.rm = TRUE)
+x <- c(1, mean(launch_speed, na.rm = TRUE), mean(launch_angle, na.rm = TRUE))
+logodds <- sum(coef(m3)*x)
+probability <- exp(sum(coef(m3)*x))/(1+exp(sum(coef(m3)*x)))
+
+logodds
+probability
+```
+
